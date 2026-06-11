@@ -1,4 +1,4 @@
-module Lib (buildTree) where
+module Lib (buildTree, buildCodeTable) where
 
 import Data.List (insert, sort)
 import Data.Map (Map)
@@ -37,3 +37,18 @@ buildTree input =
         nodes = toLeaves freqMap
         sorted = sort nodes
      in merge sorted
+
+buildCodeTable :: HuffTree -> Map Char String
+buildCodeTable tree = go [] tree
+  where
+    go path (Leaf c _) = Map.singleton c path
+    go path (Node _ left right) =
+        let leftTree = go (path ++ "0") left
+            rightTree = go (path ++ "1") right
+         in Map.union leftTree rightTree
+
+-- encode :: String -> Map Char String -> Maybe String
+-- encode input tab = Just "todo"
+--
+-- decode :: String -> Map Char String -> Maybe String
+-- decode input tab = Just "todo"
