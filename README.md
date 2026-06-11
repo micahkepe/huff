@@ -12,3 +12,11 @@ in Haskell.
 - [ ] Benchmark again
 - [ ] Explore other optimizations
 - [ ] Prosper?
+
+## Tags 
+
+Generate [fast-tags](https://github.com/elaforge/fast-tags) with:
+
+```bash 
+fast-tags -R (git rev-parse --show-toplevel)
+```
