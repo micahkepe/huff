@@ -1,8 +1,14 @@
-module Lib (buildTree, buildCodeTable) where
+module Lib (compress) where
 
 import Data.List (insert, sort)
 import Data.Map (Map)
 import qualified Data.Map as Map
+
+compress :: String -> Maybe String
+compress input = do
+    tree <- buildTree input
+    let ct = buildCodeTable tree
+    encode input ct
 
 data HuffTree
     = Node Int HuffTree HuffTree
@@ -47,8 +53,10 @@ buildCodeTable tree = go [] tree
             rightTree = go (path ++ "1") right
          in Map.union leftTree rightTree
 
--- encode :: String -> Map Char String -> Maybe String
--- encode input tab = Just "todo"
---
+encode :: String -> Map Char String -> Maybe String
+encode input tbl =
+    let res = map (\c -> Map.lookup c tbl) input
+     in fmap concat (sequence res)
+
 -- decode :: String -> Map Char String -> Maybe String
 -- decode input tab = Just "todo"

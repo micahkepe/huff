@@ -1,6 +1,6 @@
 module Main (main) where
 
-import Lib (buildCodeTable, buildTree)
+import Lib (compress)
 import System.Environment
 import System.IO
 
@@ -15,11 +15,8 @@ main = do
     case args of
         [fd] -> do
             content <- readFile fd
-            case buildTree content of
-                Just tree -> do
-                    print tree
-                    let ct = buildCodeTable tree
-                    print ct
+            case compress content of
+                Just enc -> print enc
                 Nothing -> error "nothing to see here"
         _ -> do
             hPutStrLn stderr "Error: incorrect number of args"
