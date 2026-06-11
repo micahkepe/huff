@@ -6,17 +6,18 @@ in Haskell.
 ## TODOs
 
 - [ ] Initial working naive version
-- [ ] Benchmark on some corpus
+- [ ] Test suite
+- [ ] Benchmark on some corpus (speed + compression ratio)
 - [ ] [Huet Zipper](https://wiki.haskell.org/index.php?title=Zipper_monad)
       traversal implementation
 - [ ] Benchmark again
 - [ ] Explore other optimizations
 - [ ] Prosper?
 
-## Tags 
+## Tags
 
 Generate [fast-tags](https://github.com/elaforge/fast-tags) with:
 
-```bash 
+```bash
 fast-tags -R (git rev-parse --show-toplevel)
 ```
