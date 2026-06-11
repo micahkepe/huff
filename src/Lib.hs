@@ -1,4 +1,4 @@
-module Lib (compress) where
+module Lib (compress, buildTree, buildCodeTable, encode, decode, roundtrip) where
 
 import Data.List (insert, sort)
 import Data.Map (Map)
@@ -9,6 +9,14 @@ compress input = do
     tree <- buildTree input
     let ct = buildCodeTable tree
     encode input ct
+
+roundtrip :: String -> Maybe Bool
+roundtrip input = do
+    tree <- buildTree input
+    let ct = buildCodeTable tree
+    enc <- encode input ct
+    dec <- decode enc tree
+    Just (input == dec)
 
 data HuffTree
     = Node Int HuffTree HuffTree
@@ -58,5 +66,19 @@ encode input tbl =
     let res = map (\c -> Map.lookup c tbl) input
      in fmap concat (sequence res)
 
--- decode :: String -> Map Char String -> Maybe String
--- decode input tab = Just "todo"
+decode :: String -> HuffTree -> Maybe String
+decode bits root =
+    go bits root
+  where
+    -- done decoding
+    go [] (Leaf c _) = Just [c]
+    go [] (Node _ _ _) = Nothing
+    -- reached leaf, emit char and reset root
+    go bits' (Leaf c _) = fmap (c :) (go bits' root)
+    -- at node:
+    -- \* if '0' -> go left
+    -- \* if '1' -> go right
+    -- (NOTE: opposite of HuffTree construction)
+    go ('0' : rest) (Node _ left _) = go rest left
+    go ('1' : rest) (Node _ _ right) = go rest right
+    go (_) (Node _ _ _) = error "input string is not a proper bitstring"

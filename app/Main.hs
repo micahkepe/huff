@@ -1,6 +1,6 @@
 module Main (main) where
 
-import Lib (compress)
+import Lib (compress, roundtrip)
 import System.Environment
 import System.IO
 
@@ -23,6 +23,10 @@ main = do
                     hPutStrLn stdout ("Original:    " ++ show originalNumBits ++ " bits")
                     hPutStrLn stdout ("Compressed:  " ++ show encNumBits ++ " bits")
                     hPutStrLn stdout ("Ratio:       " ++ show ratio)
+                    hPutStrLn stdout "---"
+                    case roundtrip content of
+                        Just True -> hPutStrLn stdout "Match!"
+                        _ -> error "roundtrip failed"
                 Nothing -> error "nothing to see here"
         _ -> do
             hPutStrLn stderr "Error: incorrect number of args"
