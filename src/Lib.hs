@@ -123,13 +123,13 @@ buildCodeTable tree = go [] tree
             rightTree = go (path ++ [True]) right
          in Map.union leftTree rightTree
 
-{- | Packs the input Boolean array into a ByteString with the following scheme:
+{- | Packs the input Boolean array (the codes) into a ByteString with the following scheme:
 
-  ```
-  [padding, byte_0, byte_1, ...]
-  ```
+```
+[padding, byte_0, byte_1, ...]
+```
 
-  where padding = [0-7]
+where padding = [0-7]
 
 For decoding:
 1.  First read the padding byte to know how many bits to lob off at the end of
@@ -150,6 +150,7 @@ packBits enc =
         | curr = go rest (setBit byte (7 - idx)) (idx + 1) -- current bit is True
         | otherwise = go rest byte (idx + 1) -- current bit is False, advance to next idx
 
+-- TODO: remove `byteToBits` and `unpackBits` -> directly index into the encoded bytestring
 byteToBits :: Word8 -> [Bool]
 byteToBits byte = [testBit byte (7 - i) | i <- [0 .. 7]]
 

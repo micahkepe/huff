@@ -11,6 +11,8 @@ in Haskell.
   - [x] Swap out `String` input for `Data.Text`
 - [x] Serialize the `HuffTree` in the compressed output so that the decoder does
       not need the original tree to recover the source.
+- [ ] Remove `byteToBits` and `unpackBits` -> directly index into the encoded
+      bytestring
 - [ ] Test suite (`quickcheck` time baby, fuzz over ASCII string domain with
       some max size limit)
 - [ ] Benchmark on some corpus (speed + compression ratio)
@@ -18,13 +20,6 @@ in Haskell.
       traversal implementation
 - [ ] Benchmark again
 - [ ] Explore other optimizations
-- [ ] Actually nice CLI with [`optparse-applicative`](https://hackage.haskell.org/package/optparse-applicative-0.19.0.0#quick-start)
+- [ ] Actually nice CLI with
+      [`optparse-applicative`](https://hackage.haskell.org/package/optparse-applicative-0.19.0.0#quick-start)
 - [ ] Prosper?
-
-## Tags
-
-Generate [fast-tags](https://github.com/elaforge/fast-tags) with:
-
-```bash
-fast-tags -R (git rev-parse --show-toplevel)
-```
