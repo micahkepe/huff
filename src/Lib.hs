@@ -6,29 +6,32 @@ import qualified Data.ByteString as BS
 import Data.List (insert, sort)
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Text (Text)
+import qualified Data.Text as T
+
 import Data.Word (Word8)
 
-compress :: String -> Maybe ByteString
+compress :: Text -> Maybe ByteString
 compress input = do
     tree <- buildTree input
     let ct = buildCodeTable tree
     encode input ct
 
-roundtrip :: String -> Maybe Bool
+roundtrip :: Text -> Maybe Bool
 roundtrip input = do
     tree <- buildTree input
     let ct = buildCodeTable tree
     enc <- encode input ct
     dec <- decode enc tree
-    Just (input == dec)
+    Just ((T.unpack input) == dec)
 
 data HuffTree
     = Node Int HuffTree HuffTree
     | Leaf Char Int
     deriving (Show, Read, Eq)
 
-freq :: String -> Map Char Int
-freq str = Map.fromListWith (+) (map (\c -> (c, 1)) str)
+freq :: Text -> Map Char Int
+freq str = Map.fromListWith (+) (map (\c -> (c, 1)) (T.unpack str))
 
 toLeaves :: Map Char Int -> [HuffTree]
 toLeaves freqMap =
@@ -49,7 +52,7 @@ merge (a : b : rest) =
         rest' = insert combined rest
      in merge rest'
 
-buildTree :: String -> Maybe HuffTree
+buildTree :: Text -> Maybe HuffTree
 buildTree input =
     let freqMap = freq input
         nodes = toLeaves freqMap
@@ -105,9 +108,9 @@ unpackBits str = go (BS.unpack str)
             padCount = fromIntegral pad
          in take (length allBits - padCount) allBits
 
-encode :: String -> Map Char [Bool] -> Maybe ByteString
+encode :: Text -> Map Char [Bool] -> Maybe ByteString
 encode input tbl =
-    let res = map (\c -> Map.lookup c tbl) input
+    let res = map (\c -> Map.lookup c tbl) (T.unpack input)
      in fmap packBits (fmap concat (sequence res))
 
 decode :: ByteString -> HuffTree -> Maybe String

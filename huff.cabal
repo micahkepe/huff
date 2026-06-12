@@ -37,6 +37,7 @@ library
       base >=4.7 && <5
     , bytestring
     , containers
+    , text
   default-language: Haskell2010
 
 executable huff-exe
@@ -53,6 +54,7 @@ executable huff-exe
     , bytestring
     , containers
     , huff
+    , text
   default-language: Haskell2010
 
 test-suite huff-test
@@ -70,4 +72,5 @@ test-suite huff-test
     , bytestring
     , containers
     , huff
+    , text
   default-language: Haskell2010
