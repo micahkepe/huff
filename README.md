@@ -6,7 +6,9 @@ in Haskell.
 ## TODOs
 
 - [ ] Initial working naive version
-  - [ ] Need to change `String` to `[Bool]` since `[Char]` is 8 bits so bit compression is not as good as it could/should be.
+  - [x] Need to change `String` to `[Bool]` since `[Char]` is 8 bits so bit
+        compression is not as good as it could/should be.
+  - [ ] Swap out `String` input for `Data.Text`
 - [ ] Test suite
 - [ ] Benchmark on some corpus (speed + compression ratio)
 - [ ] [Huet Zipper](https://wiki.haskell.org/index.php?title=Zipper_monad)

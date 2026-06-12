@@ -1,5 +1,6 @@
 module Main (main) where
 
+import qualified Data.ByteString as BS
 import Lib (compress, roundtrip)
 import System.Environment
 import System.IO
@@ -17,11 +18,11 @@ main = do
             content <- readFile fd
             case compress content of
                 Just enc -> do
-                    let encNumBits = length enc
-                    let originalNumBits = length content * 8
-                    let ratio = fromIntegral encNumBits / fromIntegral originalNumBits :: Double
-                    hPutStrLn stdout ("Original:    " ++ show originalNumBits ++ " bits")
-                    hPutStrLn stdout ("Compressed:  " ++ show encNumBits ++ " bits")
+                    let encNumBytes = BS.length enc
+                    let originalNumBytes = length content
+                    let ratio = fromIntegral encNumBytes / fromIntegral originalNumBytes :: Double
+                    hPutStrLn stdout ("Original:    " ++ show originalNumBytes ++ " bytes")
+                    hPutStrLn stdout ("Compressed:  " ++ show encNumBytes ++ " bytes")
                     hPutStrLn stdout ("Ratio:       " ++ show ratio)
                     hPutStrLn stdout "---"
                     case roundtrip content of

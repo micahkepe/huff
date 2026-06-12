@@ -1,10 +1,14 @@
 module Lib (compress, buildTree, buildCodeTable, encode, decode, roundtrip) where
 
+import Data.Bits (Bits (testBit), setBit)
+import Data.ByteString (ByteString)
+import qualified Data.ByteString as BS
 import Data.List (insert, sort)
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Word (Word8)
 
-compress :: String -> Maybe String
+compress :: String -> Maybe ByteString
 compress input = do
     tree <- buildTree input
     let ct = buildCodeTable tree
@@ -52,23 +56,63 @@ buildTree input =
         sorted = sort nodes
      in merge sorted
 
-buildCodeTable :: HuffTree -> Map Char String
+buildCodeTable :: HuffTree -> Map Char [Bool]
 buildCodeTable tree = go [] tree
   where
     go path (Leaf c _) = Map.singleton c path
     go path (Node _ left right) =
-        let leftTree = go (path ++ "0") left
-            rightTree = go (path ++ "1") right
+        let leftTree = go (path ++ [False]) left
+            rightTree = go (path ++ [True]) right
          in Map.union leftTree rightTree
 
-encode :: String -> Map Char String -> Maybe String
+{- | Packs the input Boolean array into a ByteString with the following scheme:
+
+  ```
+  [padding, byte_0, byte_1, ...]
+  ```
+
+  where padding = [0-7]
+
+For decoding:
+1.  First read the padding byte to know how many bits to lob off at the end of
+    the ByteString.
+2.  Read each subsequent byte (minus the padding bits on the last byte), walking
+    the Huffman tree to find the corresponding Char.
+-}
+packBits :: [Bool] -> ByteString
+packBits enc =
+    let padCount = (8 - (length enc `mod` 8)) `mod` 8
+        bytes = go enc 0 0
+     in BS.pack (fromIntegral padCount : bytes)
+  where
+    go [] _ 0 = [] -- no partial byte remaining
+    go [] byte _ = [byte] -- flush partial byte
+    go (curr : rest) byte idx
+        | idx == 8 = byte : go (curr : rest) 0 0 -- just finished the current byte, emit it and continue
+        | curr = go rest (setBit byte (7 - idx)) (idx + 1) -- current bit is True
+        | otherwise = go rest byte (idx + 1) -- current bit is False, advance to next idx
+
+byteToBits :: Word8 -> [Bool]
+byteToBits byte = [testBit byte (7 - i) | i <- [0 .. 7]]
+
+unpackBits :: ByteString -> [Bool]
+unpackBits str = go (BS.unpack str)
+  where
+    go [] = []
+    -- first byte in input (padding)
+    go (pad : rest) =
+        let allBits = concatMap byteToBits rest
+            padCount = fromIntegral pad
+         in take (length allBits - padCount) allBits
+
+encode :: String -> Map Char [Bool] -> Maybe ByteString
 encode input tbl =
     let res = map (\c -> Map.lookup c tbl) input
-     in fmap concat (sequence res)
+     in fmap packBits (fmap concat (sequence res))
 
-decode :: String -> HuffTree -> Maybe String
-decode bits root =
-    go bits root
+decode :: ByteString -> HuffTree -> Maybe String
+decode str root =
+    go (unpackBits str) root
   where
     -- done decoding
     go [] (Leaf c _) = Just [c]
@@ -76,9 +120,8 @@ decode bits root =
     -- reached leaf, emit char and reset root
     go bits' (Leaf c _) = fmap (c :) (go bits' root)
     -- at node:
-    -- \* if '0' -> go left
-    -- \* if '1' -> go right
+    -- \* if False -> go left
+    -- \* if True -> go right
     -- (NOTE: opposite of HuffTree construction)
-    go ('0' : rest) (Node _ left _) = go rest left
-    go ('1' : rest) (Node _ _ right) = go rest right
-    go (_) (Node _ _ _) = error "input string is not a proper bitstring"
+    go (False : rest) (Node _ left _) = go rest left
+    go (True : rest) (Node _ _ right) = go rest right
