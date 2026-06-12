@@ -1,34 +1,89 @@
-module Lib (compress, buildTree, buildCodeTable, encode, decode, roundtrip) where
+module Lib (compress, decompress, roundtrip) where
 
-import Data.Bits (Bits (testBit), setBit)
+import Data.Bits
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
+import Data.Char (chr, ord)
 import Data.List (insert, sort)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Text (Text)
 import qualified Data.Text as T
-
 import Data.Word (Word8)
 
 compress :: Text -> Maybe ByteString
 compress input = do
     tree <- buildTree input
     let ct = buildCodeTable tree
-    encode input ct
+    let ser_tree = serializeTree tree
+    enc <- encode input ct
+    Just (BS.append ser_tree enc)
+
+decompress :: ByteString -> Maybe String
+decompress str = do
+    (tree, rest) <- deserializeTree str
+    go tree (unpackBits rest) tree
+  where
+    -- done decoding
+    go _ [] (Leaf c _) = Just [c]
+    go _ [] (Node _ _ _) = Nothing
+    -- reached leaf, emit char and reset tree
+    go root bits' (Leaf c _) = fmap (c :) (go root bits' root)
+    -- at node:
+    -- \* if False -> go left
+    -- \* if True -> go right
+    -- (NOTE: opposite of HuffTree construction)
+    go root (False : rest) (Node _ left _) = go root rest left
+    go root (True : rest) (Node _ _ right) = go root rest right
 
 roundtrip :: Text -> Maybe Bool
 roundtrip input = do
-    tree <- buildTree input
-    let ct = buildCodeTable tree
-    enc <- encode input ct
-    dec <- decode enc tree
-    Just ((T.unpack input) == dec)
+    compressed <- compress input
+    dec <- decompress compressed
+    Just (T.unpack input == dec)
 
 data HuffTree
-    = Node Int HuffTree HuffTree
-    | Leaf Char Int
+    = Node Int HuffTree HuffTree -- internal node, no associated character
+    | Leaf Char Int -- character node
     deriving (Show, Read, Eq)
+
+charToBytes :: Char -> [Word8]
+charToBytes c =
+    let n = ord c
+     in [ fromIntegral
+            (n `shiftR` 24)
+        , fromIntegral
+            (n `shiftR` 16)
+        , fromIntegral
+            (n `shiftR` 8)
+        , fromIntegral
+            n
+        ]
+
+bytesToChar :: [Word8] -> Char
+bytesToChar [b0, b1, b2, b3] =
+    chr (fromIntegral b0 `shiftL` 24 .|. fromIntegral b1 `shiftL` 16 .|. fromIntegral b2 `shiftL` 8 .|. fromIntegral b3)
+bytesToChar _ = error "bytesToChar: expected 4 bytes"
+
+-- | Lossy preorder serialization of the HuffTree.
+serializeTree :: HuffTree -> ByteString
+serializeTree root = BS.pack (go root)
+  where
+    go (Node _ left right) = [0x00] ++ (go left) ++ go (right)
+    go (Leaf c _) = [0x01] ++ (charToBytes c)
+
+deserializeTree :: ByteString -> Maybe (HuffTree, ByteString)
+deserializeTree bytes = do
+    (tree, rest) <- go (BS.unpack bytes)
+    Just (tree, BS.pack rest)
+  where
+    go (0x00 : rest) = do
+        -- node
+        (left, rest') <- go rest
+        (right, rest'') <- go rest'
+        Just (Node (-1) left right, rest'')
+    go (0x01 : b0 : b1 : b2 : b3 : rest) = Just (Leaf (bytesToChar [b0, b1, b2, b3]) (-1), rest) -- leaf
+    go _ = Nothing -- some invalid byte
 
 freq :: Text -> Map Char Int
 freq str = Map.fromListWith (+) (map (\c -> (c, 1)) (T.unpack str))
@@ -112,19 +167,3 @@ encode :: Text -> Map Char [Bool] -> Maybe ByteString
 encode input tbl =
     let res = map (\c -> Map.lookup c tbl) (T.unpack input)
      in fmap packBits (fmap concat (sequence res))
-
-decode :: ByteString -> HuffTree -> Maybe String
-decode str root =
-    go (unpackBits str) root
-  where
-    -- done decoding
-    go [] (Leaf c _) = Just [c]
-    go [] (Node _ _ _) = Nothing
-    -- reached leaf, emit char and reset root
-    go bits' (Leaf c _) = fmap (c :) (go bits' root)
-    -- at node:
-    -- \* if False -> go left
-    -- \* if True -> go right
-    -- (NOTE: opposite of HuffTree construction)
-    go (False : rest) (Node _ left _) = go rest left
-    go (True : rest) (Node _ _ right) = go rest right
