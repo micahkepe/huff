@@ -1,36 +1,81 @@
 module Main (main) where
 
+import Control.Monad
 import qualified Data.ByteString as BS
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
-import Lib (compress, roundtrip)
-import System.Environment
+import Lib (compress, decompress)
+import Options.Applicative
+import System.Directory
+import System.Exit (exitFailure)
+import System.FilePath
 import System.IO
 
-usage :: IO ()
-usage = do
-    prog <- getProgName
-    hPutStrLn stderr (prog ++ " <FILE>")
+data Command = Compress FilePath (Maybe FilePath) Bool | Decompress FilePath
+
+compressParser :: Parser Command
+compressParser =
+    Compress
+        <$> argument str (metavar "FILE" <> help "Input file to compress.")
+        <*> optional
+            (strOption (long "output" <> metavar "FILE" <> help "Optional filepath to write to."))
+        <*> switch (short 'f' <> long "force" <> help "Overwrite output path")
+
+decompressParser :: Parser Command
+decompressParser =
+    Decompress
+        <$> argument str (metavar "FILE")
+
+commandParser :: Parser Command
+commandParser =
+    subparser
+        ( command "compress" (info (compressParser <**> helper) (progDesc "Compress a file"))
+            <> (command "decompress" (info (decompressParser <**> helper) (progDesc "Decompress a file")))
+        )
+
+data Args = Args
+    { cmd :: Command
+    , verbose :: Bool
+    }
+
+argsParser :: Parser Args
+argsParser =
+    Args
+        <$> commandParser
+        <*> switch (short 'v' <> long "verbose" <> help "Verbose output")
 
 main :: IO ()
 main = do
-    args <- getArgs
-    case args of
-        [fd] -> do
-            content <- TIO.readFile fd
+    args <- execParser (info (argsParser <**> helper) (progDesc "Simple Huffman encoder."))
+    case cmd args of
+        Compress input output overwrite -> do
+            content <- TIO.readFile input
             case compress content of
                 Just enc -> do
+                    let outPath = case output of
+                            Just f -> f
+                            Nothing -> replaceExtension input ".huf"
+                    exists <- doesFileExist outPath
+                    when
+                        (exists && not overwrite)
+                        $ do
+                            hPutStrLn stderr "ERROR: File exists. Use -f / --force to force writing to output."
+                            exitFailure
+                    BS.writeFile outPath enc
                     let encNumBytes = BS.length enc
                     let originalNumBytes = T.length content
                     let ratio = fromIntegral encNumBytes / fromIntegral originalNumBytes :: Double
-                    hPutStrLn stdout ("Original:    " ++ show originalNumBytes ++ " bytes")
-                    hPutStrLn stdout ("Compressed:  " ++ show encNumBytes ++ " bytes")
-                    hPutStrLn stdout ("Ratio:       " ++ show ratio)
-                    hPutStrLn stdout "---"
-                    case roundtrip content of
-                        Just True -> hPutStrLn stdout "Match!"
-                        _ -> error "roundtrip failed"
-                Nothing -> error "failed to compress input"
-        _ -> do
-            hPutStrLn stderr "Error: incorrect number of args"
-            usage
+                    when (verbose args) $ do
+                        hPutStrLn stderr ("Original:    " ++ show originalNumBytes ++ " bytes")
+                        hPutStrLn stderr ("Compressed:  " ++ show encNumBytes ++ " bytes")
+                        hPutStrLn stderr ("Ratio:       " ++ show ratio)
+                        hPutStrLn stderr ("Written to   " ++ show outPath)
+                Nothing -> error "ERROR: failed to compress input"
+        Decompress file -> do
+            content <- BS.readFile file
+            case decompress content of
+                Just dec -> do
+                    hPutStrLn stdout dec
+                Nothing -> do
+                    hPutStrLn stderr "ERROR: failed to decompress input"
+                    exitFailure

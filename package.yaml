@@ -21,8 +21,8 @@ description:         Please see the README on GitHub at <https://github.com/mica
 
 dependencies:
 - base >= 4.7 && < 5
-- containers
 - bytestring
+- containers
 - text
 
 ghc-options:
@@ -48,7 +48,10 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - directory
+    - filepath
     - huff
+    - optparse-applicative
 
 tests:
   huff-test:

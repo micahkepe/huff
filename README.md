@@ -7,6 +7,22 @@ implementation in Haskell.
 > Non-streaming (yet) as the symbol frequencies over the entire document must be
 > known for the Huffman tree construction.
 
+## Usage
+
+```
+Usage: huff-exe COMMAND [-v|--verbose]
+
+  Simple Huffman encoder.
+
+Available options:
+  -v,--verbose             Verbose output
+  -h,--help                Show this help text
+
+Available commands:
+  compress                 Compress a file
+  decompress               Decompress a file
+```
+
 ## TODOs
 
 - [x] Initial working naive version
@@ -17,7 +33,7 @@ implementation in Haskell.
       not need the original tree to recover the source.
 - [x] Remove `byteToBits` and `unpackBits` -> directly index into the encoded
       bytestring
-- [ ] Actually nice CLI with
+- [x] Actually nice CLI with
       [`optparse-applicative`](https://hackage.haskell.org/package/optparse-applicative-0.19.0.0#quick-start)
 - [ ] Test suite (`quickcheck` time baby, fuzz over ASCII string domain with
       some max size limit)
