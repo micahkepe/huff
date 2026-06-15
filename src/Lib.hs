@@ -21,20 +21,23 @@ compress input = do
 
 decompress :: ByteString -> Maybe String
 decompress str = do
-    (tree, rest) <- deserializeTree str
-    go tree (unpackBits rest) tree
-  where
-    -- done decoding
-    go _ [] (Leaf c _) = Just [c]
-    go _ [] (Node _ _ _) = Nothing
-    -- reached leaf, emit char and reset tree
-    go root bits' (Leaf c _) = fmap (c :) (go root bits' root)
-    -- at node:
-    -- \* if False -> go left
-    -- \* if True -> go right
-    -- (NOTE: opposite of HuffTree construction)
-    go root (False : rest) (Node _ left _) = go root rest left
-    go root (True : rest) (Node _ _ right) = go root rest right
+    (tree, bs) <- deserializeTree str
+    let padCount = fromIntegral (BS.index bs 0)
+        dataBytes = BS.drop 1 bs
+        totalBits = BS.length dataBytes * 8 - padCount
+        -- go node byteIdx bitIdx
+        go :: HuffTree -> Int -> Int -> Maybe String
+        go (Leaf c _) byteIdx bitIdx
+            | byteIdx * 8 + bitIdx >= totalBits = Just [c] -- last char
+            | otherwise = fmap (c :) (go tree byteIdx bitIdx)
+        go (Node _ left right) byteIdx bitIdx
+            | byteIdx * 8 + bitIdx >= totalBits = Nothing -- should not end up here
+            | testBit (BS.index dataBytes byteIdx) (7 - bitIdx) = go right nextByte nextBit
+            | otherwise = go left nextByte nextBit
+          where
+            nextBit = (bitIdx + 1) `mod` 8
+            nextByte = if bitIdx == 7 then byteIdx + 1 else byteIdx
+    go tree 0 0
 
 roundtrip :: Text -> Maybe Bool
 roundtrip input = do
@@ -149,20 +152,6 @@ packBits enc =
         | idx == 8 = byte : go (curr : rest) 0 0 -- just finished the current byte, emit it and continue
         | curr = go rest (setBit byte (7 - idx)) (idx + 1) -- current bit is True
         | otherwise = go rest byte (idx + 1) -- current bit is False, advance to next idx
-
--- TODO: remove `byteToBits` and `unpackBits` -> directly index into the encoded bytestring
-byteToBits :: Word8 -> [Bool]
-byteToBits byte = [testBit byte (7 - i) | i <- [0 .. 7]]
-
-unpackBits :: ByteString -> [Bool]
-unpackBits str = go (BS.unpack str)
-  where
-    go [] = []
-    -- first byte in input (padding)
-    go (pad : rest) =
-        let allBits = concatMap byteToBits rest
-            padCount = fromIntegral pad
-         in take (length allBits - padCount) allBits
 
 encode :: Text -> Map Char [Bool] -> Maybe ByteString
 encode input tbl =
