@@ -10,7 +10,7 @@ implementation in Haskell.
 ## Usage
 
 ```
-Usage: huff-exe COMMAND [-v|--verbose]
+Usage: huff COMMAND [-v|--verbose]
 
   Simple Huffman encoder.
 
@@ -19,8 +19,8 @@ Available options:
   -h,--help                Show this help text
 
 Available commands:
-  compress                 Compress a file
-  decompress               Decompress a file
+  compress                 Compress a file.
+  decompress               Decompress a Huffman-encoded file
 ```
 
 ## TODOs
@@ -40,9 +40,9 @@ Available commands:
 - [ ] Benchmark on some corpus (speed + compression ratio)
 - [x] ~~Experiment with [Huet
       Zipper](https://wiki.haskell.org/index.php?title=Zipper_monad) traversal
-      implementation for tree traversal &rarr; _would need to be scraped if move to
+      implementation for tree traversal~~ &rarr; _would need to be scraped if move to
       streaming algorithm since Huet zippers are only for cursors over an
-      **immutable** tree structure_~~
+      **immutable** tree structure_
 - [ ] Explore other optimizations
   - [x] Look into [adaptive/dynamic Huffman coding](https://en.wikipedia.org/wiki/Adaptive_Huffman_coding)
     - [Faller-Gallager-Knuth](https://www.ittc.ku.edu/~jsv/Papers/Vit87.jacmACMversion.pdf)

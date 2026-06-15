@@ -40,7 +40,7 @@ library
     , text
   default-language: Haskell2010
 
-executable huff-exe
+executable huff
   main-is: Main.hs
   other-modules:
       Paths_huff

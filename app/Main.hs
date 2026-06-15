@@ -29,8 +29,8 @@ decompressParser =
 commandParser :: Parser Command
 commandParser =
     subparser
-        ( command "compress" (info (compressParser <**> helper) (progDesc "Compress a file"))
-            <> (command "decompress" (info (decompressParser <**> helper) (progDesc "Decompress a file")))
+        ( command "compress" (info (compressParser <**> helper) (progDesc "Compress a file."))
+            <> (command "decompress" (info (decompressParser <**> helper) (progDesc "Decompress a Huffman-encoded file")))
         )
 
 data Args = Args
