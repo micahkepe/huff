@@ -1,4 +1,4 @@
-module Lib (compress, decompress, roundtrip) where
+module Lib (compress, decompress) where
 
 import Data.Bits
 import Data.ByteString (ByteString)
@@ -38,12 +38,6 @@ decompress str = do
             nextBit = (bitIdx + 1) `mod` 8
             nextByte = if bitIdx == 7 then byteIdx + 1 else byteIdx
     go tree 0 0
-
-roundtrip :: Text -> Maybe Bool
-roundtrip input = do
-    compressed <- compress input
-    dec <- decompress compressed
-    Just (T.unpack input == dec)
 
 data HuffTree
     = Node Int HuffTree HuffTree -- internal node, no associated character

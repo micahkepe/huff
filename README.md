@@ -35,7 +35,7 @@ Available commands:
       bytestring
 - [x] Actually nice CLI with
       [`optparse-applicative`](https://hackage.haskell.org/package/optparse-applicative-0.19.0.0#quick-start)
-- [ ] Test suite (`quickcheck` time baby, fuzz over ASCII string domain with
+- [x] Test suite (`quickcheck` time baby, fuzz over ASCII string domain with
       some max size limit)
 - [ ] Benchmark on some corpus (speed + compression ratio)
 - [x] ~~Experiment with [Huet
@@ -48,4 +48,3 @@ Available commands:
     - [Faller-Gallager-Knuth](https://www.ittc.ku.edu/~jsv/Papers/Vit87.jacmACMversion.pdf)
     - [Vitter](https://www.ittc.ku.edu/~jsv/Papers/HoV94.arithmetic_coding.pdf)
   - [ ] [Adaptive arithmetic coding](https://en.wikipedia.org/wiki/Arithmetic_coding#Adaptive_arithmetic_coding)
-- [ ] Prosper?
