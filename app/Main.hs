@@ -18,7 +18,7 @@ compressParser =
     Compress
         <$> argument str (metavar "FILE" <> help "Input file to compress.")
         <*> optional
-            (strOption (long "output" <> metavar "FILE" <> help "Optional filepath to write to."))
+            (strOption (long "output" <> metavar "FILE" <> help "Optional filepath to write to. Defaults to current directory."))
         <*> switch (short 'f' <> long "force" <> help "Overwrite output path")
 
 decompressParser :: Parser Command
@@ -54,7 +54,7 @@ main = do
                 Just enc -> do
                     let outPath = case output of
                             Just f -> f
-                            Nothing -> replaceExtension input ".huf"
+                            Nothing -> replaceExtension (takeBaseName input) ".huf"
                     exists <- doesFileExist outPath
                     when
                         (exists && not overwrite)
