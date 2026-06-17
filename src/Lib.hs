@@ -83,7 +83,7 @@ deserializeTree bytes = do
     go _ = Nothing -- some invalid byte
 
 freq :: Text -> Map Char Int
-freq str = Map.fromListWith (+) (map (\c -> (c, 1)) (T.unpack str))
+freq text = T.foldl' (\m c -> Map.insertWith (+) c 1 m) Map.empty text
 
 toLeaves :: Map Char Int -> [HuffTree]
 toLeaves freqMap =
