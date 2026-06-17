@@ -8,7 +8,7 @@ import qualified Data.ByteString as BS
 import Data.Char (chr, ord)
 import Data.List (insert, sort)
 import Data.Map (Map)
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Word (Word8)
