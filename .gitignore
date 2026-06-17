@@ -1,5 +1,12 @@
+# Stack-specific
 .stack-work/
 *~
 tags
 dist-newstyle/
+
+# Compressed output
 *.huf
+
+# Profiling
+*.hp
+*.prof

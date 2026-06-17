@@ -48,3 +48,12 @@ Available commands:
     - [Faller-Gallager-Knuth](https://www.ittc.ku.edu/~jsv/Papers/Vit87.jacmACMversion.pdf)
     - [Vitter](https://www.ittc.ku.edu/~jsv/Papers/HoV94.arithmetic_coding.pdf)
   - [ ] [Adaptive arithmetic coding](https://en.wikipedia.org/wiki/Arithmetic_coding#Adaptive_arithmetic_coding)
+
+## Benchmarking
+
+- Via `stack`
+
+```bash
+stack build --profile
+stack exec --profile -- huff compress -f <FILE> +RTS -p -hc
+```
