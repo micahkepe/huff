@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPatterns #-}
+
 module Lib (compress, decompress) where
 
 import Data.Bits
@@ -25,7 +27,6 @@ decompress str = do
     let padCount = fromIntegral (BS.index bs 0)
         dataBytes = BS.drop 1 bs
         totalBits = BS.length dataBytes * 8 - padCount
-        -- go node byteIdx bitIdx
         go :: HuffTree -> Int -> Int -> Maybe String
         go (Leaf c _) byteIdx bitIdx
             | byteIdx * 8 + bitIdx >= totalBits = Just [c] -- last char
@@ -37,7 +38,9 @@ decompress str = do
           where
             nextBit = (bitIdx + 1) `mod` 8
             nextByte = if bitIdx == 7 then byteIdx + 1 else byteIdx
-    go tree 0 0
+    case tree of
+        Leaf c _ -> Just (replicate (totalBits) c) -- solely a leaf node, just replicate to fill the total bits
+        _ -> go tree 0 0
 
 data HuffTree
     = Node Int HuffTree HuffTree -- internal node, no associated character
@@ -112,12 +115,13 @@ buildTree input =
      in merge sorted
 
 buildCodeTable :: HuffTree -> Map Char [Bool]
+buildCodeTable (Leaf c _) = Map.singleton c [False]
 buildCodeTable tree = go [] tree
   where
-    go path (Leaf c _) = Map.singleton c path
+    go path (Leaf c _) = Map.singleton c (reverse path)
     go path (Node _ left right) =
-        let leftTree = go (path ++ [False]) left
-            rightTree = go (path ++ [True]) right
+        let leftTree = go (False : path) left
+            rightTree = go (True : path) right
          in Map.union leftTree rightTree
 
 {- | Packs the input Boolean array (the codes) into a ByteString with the following scheme:
@@ -134,20 +138,23 @@ For decoding:
 2.  Read each subsequent byte (minus the padding bits on the last byte), walking
     the Huffman tree to find the corresponding Char.
 -}
-packBits :: [Bool] -> ByteString
-packBits enc =
-    let padCount = (8 - (length enc `mod` 8)) `mod` 8
-        bytes = go enc 0 0
-     in BS.pack (fromIntegral padCount : bytes)
-  where
-    go [] _ 0 = [] -- no partial byte remaining
-    go [] byte _ = [byte] -- flush partial byte
-    go (curr : rest) byte idx
-        | idx == 8 = byte : go (curr : rest) 0 0 -- just finished the current byte, emit it and continue
-        | curr = go rest (setBit byte (7 - idx)) (idx + 1) -- current bit is True
-        | otherwise = go rest byte (idx + 1) -- current bit is False, advance to next idx
-
 encode :: Text -> Map Char [Bool] -> Maybe ByteString
 encode input tbl =
-    let res = map (\c -> Map.lookup c tbl) (T.unpack input)
-     in fmap packBits (fmap concat (sequence res))
+    let (totalBits, revBytes, currentByte, bitIdx) = T.foldl' step (0 :: Int, [], 0 :: Word8, 0 :: Int) input
+        padCount = (8 - (totalBits `mod` 8)) `mod` 8 -- remaining bits in last byte
+        finalBytes
+            | bitIdx == 0 = reverse revBytes
+            | otherwise = reverse (currentByte : revBytes)
+     in if totalBits == 0
+            then Nothing
+            else Just (BS.pack (fromIntegral padCount : finalBytes))
+  where
+    step (bits, bytes, byte, idx) c =
+        case Map.lookup c tbl of
+            Nothing -> (bits, bytes, byte, idx)
+            Just code -> pushBits bits bytes byte idx code
+    pushBits !bits bytes !byte idx [] = (bits, bytes, byte, idx)
+    pushBits !bits bytes !byte idx (b : bs)
+        | idx == 8 = pushBits bits (byte : bytes) 0 0 (b : bs)
+        | b = pushBits (bits + 1) bytes (setBit byte (7 - idx)) (idx + 1) bs
+        | otherwise = pushBits (bits + 1) bytes byte (idx + 1) bs
