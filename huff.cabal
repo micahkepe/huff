@@ -6,7 +6,9 @@ cabal-version: 2.2
 
 name:           huff
 version:        0.1.0.0
+synopsis:       Simple Huffman coding CLI.
 description:    Please see the README on GitHub at <https://github.com/micahkepe/huff#readme>
+category:       Text encoding.
 homepage:       https://github.com/micahkepe/huff#readme
 bug-reports:    https://github.com/micahkepe/huff/issues
 author:         Micah Kepe

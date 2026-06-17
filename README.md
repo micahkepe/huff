@@ -37,7 +37,7 @@ Available commands:
       [`optparse-applicative`](https://hackage.haskell.org/package/optparse-applicative-0.19.0.0#quick-start)
 - [x] Test suite (`quickcheck` time baby, fuzz over ASCII string domain with
       some max size limit)
-- [ ] Benchmark on some corpus (speed + compression ratio)
+- [x] Benchmark on some corpus (speed + compression ratio)
 - [x] ~~Experiment with [Huet
       Zipper](https://wiki.haskell.org/index.php?title=Zipper_monad) traversal
       implementation for tree traversal~~ &rarr; _would need to be scraped if move to
