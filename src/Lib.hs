@@ -11,7 +11,7 @@ import Data.Map (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Word (Word8)
+import Data.Word (Word32, Word8)
 
 compress :: Text -> Maybe ByteString
 compress input = do
@@ -114,14 +114,14 @@ buildTree input =
         sorted = sort nodes
      in merge sorted
 
-buildCodeTable :: HuffTree -> Map Char [Bool]
-buildCodeTable (Leaf c _) = Map.singleton c [False]
-buildCodeTable tree = go [] tree
+buildCodeTable :: HuffTree -> Map Char (Word32, Int)
+buildCodeTable (Leaf c _) = Map.singleton c (0, 1)
+buildCodeTable tree = go 0 0 tree
   where
-    go path (Leaf c _) = Map.singleton c (reverse path)
-    go path (Node _ left right) =
-        let leftTree = go (False : path) left
-            rightTree = go (True : path) right
+    go bits len (Leaf c _) = Map.singleton c (bits, len)
+    go bits len (Node _ left right) =
+        let leftTree = go (shiftL bits 1) (len + 1) left
+            rightTree = go (shiftL bits 1 .|. 1) (len + 1) right
          in Map.union leftTree rightTree
 
 {- | Packs the input Boolean array (the codes) into a ByteString with the following scheme:
@@ -138,7 +138,7 @@ For decoding:
 2.  Read each subsequent byte (minus the padding bits on the last byte), walking
     the Huffman tree to find the corresponding Char.
 -}
-encode :: Text -> Map Char [Bool] -> Maybe ByteString
+encode :: Text -> Map Char (Word32, Int) -> Maybe ByteString
 encode input tbl =
     let (totalBits, revBytes, currentByte, bitIdx) = T.foldl' step (0 :: Int, [], 0 :: Word8, 0 :: Int) input
         padCount = (8 - (totalBits `mod` 8)) `mod` 8 -- remaining bits in last byte
@@ -152,9 +152,11 @@ encode input tbl =
     step (bits, bytes, byte, idx) c =
         case Map.lookup c tbl of
             Nothing -> (bits, bytes, byte, idx)
-            Just code -> pushBits bits bytes byte idx code
-    pushBits !bits bytes !byte idx [] = (bits, bytes, byte, idx)
-    pushBits !bits bytes !byte idx (b : bs)
-        | idx == 8 = pushBits bits (byte : bytes) 0 0 (b : bs)
-        | b = pushBits (bits + 1) bytes (setBit byte (7 - idx)) (idx + 1) bs
-        | otherwise = pushBits (bits + 1) bytes byte (idx + 1) bs
+            Just (code, len) -> pushBits bits bytes byte idx code len 0
+    pushBits !bits bytes !byte !idx !code !len !pos
+        | pos >= len = (bits, bytes, byte, idx)
+        | idx == 8 = pushBits bits (byte : bytes) 0 0 code len pos
+        | testBit code (len - 1 - pos) =
+            pushBits (bits + 1) bytes (setBit byte (7 - idx)) (idx + 1) code len (pos + 1)
+        | otherwise =
+            pushBits (bits + 1) bytes byte (idx + 1) code len (pos + 1)
